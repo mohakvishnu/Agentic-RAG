@@ -1,0 +1,218 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agentic RAG Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f9fafc;
+            --panel: #ffffff;
+            --card: #f3f4f8;
+            --muted: #556274;
+            --accent: #2563eb;
+            --accent2: #4f46e5;
+            --ok: #16a34a;
+            --warn: #f59e0b;
+            --border: #d0d7e2;
+            --white: #1f2937;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body,
+        #root {
+            height: 100%
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, system-ui, Arial;
+            background: linear-gradient(180deg, #0a0f1e, #0b1020);
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            height: 100%
+        }
+
+        .sidebar {
+            background: var(--panel);
+            border-right: 1px solid var(--border);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px
+        }
+
+        .brand {
+            font-weight: 700;
+            color: var(--white);
+            letter-spacing: .5px
+        }
+
+        .nav a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            color: var(--muted);
+            text-decoration: none
+        }
+
+        .nav a.active,
+        .nav a:hover {
+            background: rgba(110, 231, 255, .15);
+            color: var(--accent)
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(18, 26, 51, .7);
+            backdrop-filter: blur(6px);
+            position: sticky;
+            top: 0;
+            z-index: 5
+        }
+
+        .content {
+            height: 100%;
+            overflow: auto;
+            background: radial-gradient(1200px 600px at 60% -20%, rgba(167, 139, 250, .15), transparent 60%)
+        }
+
+        .badge {
+            font-size: 12px;
+            padding: 2px 8px;
+            border: 1px solid var(--border);
+            border-radius: 9999px;
+            color: var(--muted)
+        }
+
+        .btn {
+            cursor: pointer;
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--white);
+            padding: 10px 14px;
+            border-radius: 10px
+        }
+
+        .btn.primary {
+            background: linear-gradient(90deg, var(--accent2), var(--accent));
+            border: 0;
+            color: #0b1020;
+            font-weight: 700
+        }
+
+        .grid {
+            display: grid;
+            gap: 16px
+        }
+
+        .grid.cols-2 {
+            grid-template-columns: 1fr 1fr
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px
+        }
+
+        input,
+        textarea,
+        select {
+            background: #0f1733;
+            border: 1px solid var(--border);
+            color: var(--white);
+            border-radius: 10px;
+            padding: 10px 12px
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px
+        }
+
+        th {
+            color: var(--muted);
+            font-weight: 600;
+            text-align: left;
+            padding: 8px 10px
+        }
+
+        td {
+            padding: 10px;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border)
+        }
+
+        tr td:first-child {
+            border-left: 1px solid var(--border);
+            border-top-left-radius: 10px;
+            border-bottom-left-radius: 10px
+        }
+
+        tr td:last-child {
+            border-right: 1px solid var(--border);
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px
+        }
+
+        .pill {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            background: rgba(110, 231, 255, .15);
+            color: var(--accent)
+        }
+
+        .muted {
+            color: var(--muted)
+        }
+
+        .route {
+            font-size: 12px;
+            background: #0e1733;
+            border: 1px solid var(--border);
+            padding: 2px 8px;
+            border-radius: 9999px
+        }
+
+        .footer {
+            color: var(--muted);
+            font-size: 12px;
+            padding: 12px;
+            text-align: center
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>

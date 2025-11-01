@@ -1,0 +1,3 @@
+Agentic RAG combines classic Retrieval-Augmented Generation with an agent layer that can plan,
+choose tools (retrieval, SQL, codegen), and self-check. It boosts reliability via better context,
+routing (RAG vs SQL vs Code), and lightweight memory of the conversation.
