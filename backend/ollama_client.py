@@ -1,12 +1,10 @@
 import os, requests, logging, time
 from datetime import datetime
 from dotenv import load_dotenv
-import sys
 
 # Configure logging
 log_dir = "logs"
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
+os.makedirs(log_dir, exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,29 +20,51 @@ load_dotenv()
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
 
 
-def generate(model: str, prompt: str, max_tokens: int = 512, temperature: float = 0.7) -> str:
+def generate(model: str, prompt: str, max_tokens: int = 1024, temperature: float = 0.7, stream: bool = False) -> str:
+    """
+    Non-stream by default. Reads 'response' from Ollama JSON.
+    If stream=True, aggregates 'response' chunks.
+    """
     url = f"{OLLAMA_HOST}/api/generate"
     payload = {
         "model": model,
         "prompt": prompt,
-        "max_tokens": max_tokens,
-        "temperature": temperature
+        "stream": stream,
+        "options": {
+            "temperature": temperature,
+            "num_predict": max_tokens
+        }
     }
-    headers = {
-        "Content-Type": "application/json"
-    }
+    headers = {"Content-Type": "application/json"}
 
     try:
-        start_time = time.time()
-        response = requests.post(url, json=payload, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-        end_time = time.time()
-
-        logger.info(f"OLLAMA generate call successful for model '{model}' in {end_time - start_time:.2f}s")
-        return data.get("text", "")
+        start = time.time()
+        if not stream:
+            r = requests.post(url, json=payload, headers=headers, timeout=120)
+            r.raise_for_status()
+            data = r.json()
+            out = (data.get("response") or "").strip()
+            logger.info(f"Ollama generate OK (model={model}, {time.time()-start:.2f}s, {len(out)} chars)")
+            return out
+        else:
+            # streaming aggregation
+            with requests.post(url, json=payload, headers=headers, stream=True, timeout=120) as r:
+                r.raise_for_status()
+                buff = []
+                for line in r.iter_lines():
+                    if not line:
+                        continue
+                    try:
+                        chunk = line.decode("utf-8")
+                        obj = requests.utils.json.loads(chunk)
+                        piece = obj.get("response") or ""
+                        if piece:
+                            buff.append(piece)
+                    except Exception:
+                        continue
+                out = "".join(buff).strip()
+                logger.info(f"Ollama stream OK (model={model}, {time.time()-start:.2f}s, {len(out)} chars)")
+                return out
     except requests.exceptions.RequestException as e:
-        logger.error(f"OLLAMA generate call failed for model '{model}': {str(e)}", exc_info=True)
+        logger.error(f"Ollama generate FAILED (model={model}): {e}", exc_info=True)
         return ""
-print(f"OLLAMA_HOST set to '{OLLAMA_HOST}'")
-print("OLLAMA client module loaded.")
