@@ -7,7 +7,7 @@ export async function ask(query, sessionId = "demo") {
     body: JSON.stringify({ query, session_id: sessionId })
   });
   if (!r.ok) throw new Error(await r.text());
-  return r.json(); // { answer, citations, route }
+  return r.json(); // { answer, citations, route, plan, trace, context, planner_notes }
 }
 
 export async function ingest(text) {
