@@ -10,14 +10,18 @@ import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 function TypingDots() {
   return (
     <div style={{
-      display: "inline-flex", gap: 6, alignItems: "center",
-      padding: "10px 12px", background: "#ffffff",
-      border: "1px solid #e5e7eb", borderRadius: 12,
-      boxShadow: "0 1px 2px rgba(16,24,40,.05)"
+      display: "inline-flex",
+      gap: 6,
+      alignItems: "center",
+      padding: "10px 12px",
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 14,
+      boxShadow: "0 6px 18px rgba(15,23,42,0.08)",
     }}>
-      <span style={{ width: 6, height: 6, background: "#9ca3af", borderRadius: "999px", animation: "blink 1s infinite" }} />
-      <span style={{ width: 6, height: 6, background: "#9ca3af", borderRadius: "999px", animation: "blink 1s .15s infinite" }} />
-      <span style={{ width: 6, height: 6, background: "#9ca3af", borderRadius: "999px", animation: "blink 1s .3s infinite" }} />
+      <span style={{ width: 6, height: 6, background: "var(--muted)", borderRadius: "999px", animation: "blink 1s infinite" }} />
+      <span style={{ width: 6, height: 6, background: "var(--muted)", borderRadius: "999px", animation: "blink 1s .15s infinite" }} />
+      <span style={{ width: 6, height: 6, background: "var(--muted)", borderRadius: "999px", animation: "blink 1s .3s infinite" }} />
       <style>{`
         @keyframes blink {
           0% { opacity: .3; transform: translateY(0); }
@@ -31,46 +35,62 @@ function TypingDots() {
 
 /* ------- Layout ------- */
 function Sidebar({ tab, setTab }) {
-  const items = [
-    { key: "chat",     label: "Chat",          icon: "💬" },
-    { key: "upload",   label: "Upload",        icon: "📤" },
-    { key: "docs",     label: "Documents",     icon: "📚" },
-    { key: "db",       label: "DB Info",       icon: "🗄️" },
-    { key: "rerank",   label: "Rerank Debug",  icon: "🔎" },
-    { key: "memory",   label: "Memory",        icon: "🧠" },
-    { key: "settings", label: "Settings",      icon: "⚙️" },
+  const primary = [
+    { key: "chat", label: "Chat", icon: "💬" },
+    { key: "upload", label: "Upload", icon: "📤" },
+    { key: "docs", label: "Documents", icon: "📚" },
   ];
+  const secondary = [
+    { key: "db", label: "DB Info", icon: "🗄️" },
+    { key: "rerank", label: "Rerank", icon: "🔎" },
+    { key: "memory", label: "Memory", icon: "🧠" },
+    { key: "settings", label: "Settings", icon: "⚙️" },
+  ];
+
+  const renderLinks = (items) => (
+    items.map((it) => (
+      <button
+        key={it.key}
+        type="button"
+        onClick={() => setTab(it.key)}
+        className={`nav-item ${tab === it.key ? "active" : ""}`}
+      >
+        <span className="nav-icon">{it.icon}</span>
+        <span>{it.label}</span>
+      </button>
+    ))
+  );
+
   return (
     <aside className="sidebar">
-      <div className="brand">Agentic RAG</div>
-      <div className="muted" style={{ fontSize: 12 }}>Dashboard</div>
-      <nav className="nav" style={{ display: "grid", gap: 6, marginTop: 8 }}>
-        {items.map(it => (
-          <a key={it.key} onClick={() => setTab(it.key)}
-             className={tab === it.key ? "active" : ""} style={{ cursor: "pointer" }}>
-            <span>{it.icon}</span><span>{it.label}</span>
-          </a>
-        ))}
-      </nav>
-      <div style={{ marginTop: "auto" }} className="muted">
-        <div className="card" style={{ fontSize: 12 }}>
-          <div style={{ fontWeight: 600 }}>Tips</div>
-          Upload PDFs/DOCX, then ask:
-          <ul>
-            <li>“Summarize the docs I uploaded”</li>
-            <li>“Show last 5 memories (SQL)”</li>
-          </ul>
-        </div>
+      <div className="sidebar-header">
+        <div className="brand">Agentic RAG</div>
+        <div className="sidebar-tagline">A calm space for your agent workflow.</div>
+      </div>
+      <div className="sidebar-section">
+        <div className="nav-label">Workspace</div>
+        <nav className="nav">
+          {renderLinks(primary)}
+        </nav>
+      </div>
+      <div className="sidebar-section">
+        <div className="nav-label">System</div>
+        <nav className="nav nav-muted">
+          {renderLinks(secondary)}
+        </nav>
       </div>
     </aside>
   );
 }
 
-function Topbar({ right = null }) {
+function Topbar({ title, subtitle, right = null }) {
   return (
     <div className="topbar">
-      <div className="muted">Build your perfect Agentic RAG</div>
-      <div>{right}</div>
+      <div className="topbar-text">
+        {title ? <div className="topbar-title">{title}</div> : null}
+        {subtitle ? <div className="topbar-subtitle">{subtitle}</div> : null}
+      </div>
+      <div className="topbar-actions">{right}</div>
     </div>
   );
 }
@@ -306,7 +326,11 @@ function ChatPage() {
 
   return (
     <div className="content">
-      <Topbar right={<span className="badge">Chat</span>} />
+      <Topbar
+        title="Conversation"
+        subtitle="Chat with your agent and review the retrieved context in one place."
+        right={<span className="badge">Live</span>}
+      />
 
       <div className="chat-wrap chat-col">
         {busy && pipelineSteps.length ? <PipelineLoader steps={pipelineSteps} /> : null}
@@ -427,7 +451,11 @@ function UploadPage() {
   }
   return (
     <div className="content">
-      <Topbar right={<span className="badge">Upload</span>} />
+      <Topbar
+        title="Upload & Ingest"
+        subtitle="Bring new knowledge into your workspace in a couple of clicks."
+        right={<span className="badge neutral">TXT · PDF · DOCX</span>}
+      />
       <div className="panel" style={{ margin: 16 }}>
         <h3 style={{ marginTop: 0 }}>Upload & Ingest</h3>
         <p className="muted">TXT, MD, CSV, LOG, PDF, DOCX</p>
@@ -455,7 +483,11 @@ function DocsPage() {
   const totalPages = Math.max(1, Math.ceil(data.total / size));
   return (
     <div className="content">
-      <Topbar right={<span className="badge">Documents</span>} />
+      <Topbar
+        title="Documents"
+        subtitle="Browse the knowledge your agent can reach."
+        right={<span className="badge neutral">{data.total} total</span>}
+      />
       <div className="panel" style={{ margin: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3 style={{ margin: 0 }}>Documents</h3>
@@ -464,7 +496,7 @@ function DocsPage() {
         <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "10px 0" }}>
           <span className="muted">Page</span>
           <button className="btn" onClick={() => setPage(p => Math.max(1, p - 1))}>Prev</button>
-          <span className="badge">{page}/{totalPages}</span>
+          <span className="badge neutral">{page}/{totalPages}</span>
           <button className="btn" onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
           <span className="muted" style={{ marginLeft: 10 }}>Page size</span>
           <select value={size} onChange={e => { setPage(1); setSize(parseInt(e.target.value)); }}>
@@ -494,7 +526,11 @@ function DbInfoPage() {
   useEffect(() => { (async () => setInfo(await getDbInfo()))(); }, []);
   return (
     <div className="content">
-      <Topbar right={<span className="badge">DB Info</span>} />
+      <Topbar
+        title="Databases"
+        subtitle="Inspect the stores powering retrieval."
+        right={<span className="badge neutral">Status</span>}
+      />
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr", margin: 16 }}>
         <div className="panel">
           <h3 style={{ marginTop: 0 }}>Vector DB</h3>
@@ -524,7 +560,11 @@ function RerankPage() {
   const [q, setQ] = useState(""), [data, setData] = useState(null);
   return (
     <div className="content">
-      <Topbar right={<span className="badge">Rerank Debug</span>} />
+      <Topbar
+        title="Rerank Debug"
+        subtitle="Compare dense scores with fused RRF output."
+        right={<span className="badge neutral">Tools</span>}
+      />
       <div className="panel" style={{ margin: 16 }}>
         <form onSubmit={(e) => { e.preventDefault(); (async () => setData(await api.rerankDebug(q)))(); }} style={{ display: "flex", gap: 10 }}>
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Type a query to debug ranking…" style={{ flex: 1 }} />
@@ -548,7 +588,11 @@ function MemoryPage() {
   useEffect(() => { load(); }, []);
   return (
     <div className="content">
-      <Topbar right={<span className="badge">Memory</span>} />
+      <Topbar
+        title="Conversation Memory"
+        subtitle="Review what the agent has stored for this session."
+        right={<span className="badge neutral">History</span>}
+      />
       <div className="panel" style={{ margin: 16, display: "flex", gap: 10 }}>
         <input value={session} onChange={e => setSession(e.target.value)} placeholder="session id" style={{ flex: 1 }} />
         <button className="btn" onClick={load}>Load</button>
@@ -574,15 +618,19 @@ function SettingsPage() {
   useEffect(() => { (async () => setModels(await api.getModels()))(); }, []);
   return (
     <div className="content">
-      <Topbar right={
+      <Topbar
+        title="Settings"
+        subtitle="Fine-tune models and maintenance tasks."
+        right={
         <div>
           <button className="btn" onClick={async () => {
             if (!confirm("This will clear vector store + sqlite docs + memories")) return;
             const res = await api.clearAll(); alert(res.cleared ? "Cleared" : "Failed");
           }}>Clear All</button>
-          <span style={{ marginLeft: 10 }} className="badge">Settings</span>
+          <span style={{ marginLeft: 10 }} className="badge neutral">Maintenance</span>
         </div>
-      } />
+      }
+      />
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr", margin: 16 }}>
         <div className="panel">
           <h3 style={{ marginTop: 0 }}>Active Models</h3>
