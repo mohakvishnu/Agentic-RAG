@@ -95,12 +95,166 @@ function CopyButton({ getText, label = "Copy" }) {
   );
 }
 
+const PIPELINE_TEMPLATE = [
+  { key: "memory", label: "Memory Recall" },
+  { key: "dense", label: "Dense Retrieval" },
+  { key: "sparse", label: "Sparse Retrieval" },
+  { key: "fusion", label: "Fusion (RRF)" },
+  { key: "llm", label: "LLM Generation" },
+  { key: "write", label: "Memory Write" }
+];
+
+const STATUS_ICON = {
+  completed: "✅",
+  running: "⏳",
+  pending: "•",
+  failed: "❌",
+  skipped: "⏭️"
+};
+
+function StageTimeline({ trace = [] }) {
+  if (!trace?.length) return null;
+
+  return (
+    <div className="stage-timeline">
+      <div className="timeline-title">Pipeline Trace</div>
+      <ul className="stage-list">
+        {trace.map((stage, idx) => (
+          <li key={`${stage.name}-${idx}`} className={`stage-item stage-${stage.status}`}>
+            <div className="stage-icon">{STATUS_ICON[stage.status] || "•"}</div>
+            <div className="stage-body">
+              <div className="stage-head">
+                <span className="stage-name">{stage.name}</span>
+                {stage.duration_ms ? (
+                  <span className="stage-duration">{stage.duration_ms} ms</span>
+                ) : null}
+              </div>
+              <div className="stage-desc">{stage.description}</div>
+              {stage.detail && Object.keys(stage.detail).length ? (
+                <div className="stage-detail">
+                  {Object.entries(stage.detail).map(([k, v]) => (
+                    <StageDetailValue key={k} label={k} value={v} />
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function StageDetailValue({ label, value }) {
+  let display = value;
+  if (Array.isArray(value)) {
+    display = value.join(", ");
+  } else if (typeof value === "object" && value !== null) {
+    display = JSON.stringify(value);
+  }
+  return (
+    <span className="stage-detail-item">
+      <strong>{label}:</strong> {String(display)}
+    </span>
+  );
+}
+
+function PlanCard({ plan = [], notes }) {
+  if ((!plan || !plan.length) && !notes) return null;
+  return (
+    <div className="plan-card">
+      <div className="plan-title">Agent Plan</div>
+      {plan?.length ? (
+        <ol className="plan-list">
+          {plan.map((step, idx) => (
+            <li key={idx}>{step}</li>
+          ))}
+        </ol>
+      ) : null}
+      {notes ? <div className="plan-notes">Note: {notes}</div> : null}
+    </div>
+  );
+}
+
+function ContextPreview({ context = [] }) {
+  if (!context?.length) return null;
+  return (
+    <div className="context-card">
+      <div className="plan-title">Context Shared with LLM</div>
+      <ul className="context-list">
+        {context.map((doc, idx) => (
+          <li key={doc.id || idx} className="context-item">
+            <div className="context-head">
+              <span className="context-id">{doc.id || `doc-${idx + 1}`}</span>
+              {doc.meta?.source ? <span className="context-source">{doc.meta.source}</span> : null}
+              {typeof doc.rrf === "number" ? (
+                <span className="context-score">RRF {doc.rrf.toFixed(3)}</span>
+              ) : null}
+            </div>
+            <div className="context-snippet">{doc.snippet}</div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function PipelineLoader({ steps = [] }) {
+  if (!steps?.length) return null;
+  return (
+    <div className="pipeline-loader">
+      <div className="timeline-title">Processing pipeline</div>
+      <ul className="stage-list">
+        {steps.map(step => (
+          <li key={step.key} className={`stage-item stage-${step.status || "pending"}`}>
+            <div className="stage-icon">{STATUS_ICON[step.status] || "•"}</div>
+            <div className="stage-body">
+              <div className="stage-head">
+                <span className="stage-name">{step.label}</span>
+              </div>
+              <div className="stage-desc">Awaiting backend signal</div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /* ------- Chat (WhatsApp style + typing) ------- */
 function ChatPage() {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState([]); // [{role:'user'|'assistant'|'typing', ...}]
+  const [pipelineSteps, setPipelineSteps] = useState([]);
   const endRef = useRef(null);
+
+  useEffect(() => {
+    if (!busy) {
+      setPipelineSteps([]);
+      return;
+    }
+    setPipelineSteps(PIPELINE_TEMPLATE.map((step, idx) => ({ ...step, status: idx === 0 ? "running" : "pending" })));
+    let currentIndex = 0;
+    const timer = setInterval(() => {
+      setPipelineSteps(prev => {
+        if (!prev.length) return prev;
+        const next = prev.map(item => ({ ...item }));
+        if (currentIndex < next.length) {
+          next[currentIndex].status = "completed";
+          if (currentIndex + 1 < next.length && next[currentIndex + 1].status === "pending") {
+            next[currentIndex + 1].status = "running";
+          }
+        }
+        currentIndex += 1;
+        if (currentIndex >= next.length) {
+          clearInterval(timer);
+        }
+        return next;
+      });
+    }, 1200);
+    return () => clearInterval(timer);
+  }, [busy]);
 
   async function onAsk(e) {
     e.preventDefault();
@@ -127,7 +281,12 @@ function ChatPage() {
           role: "assistant",
           answer: res?.answer || "(no response)",
           citations: res?.citations || [],
-          route: res?.route || "RAG"
+          route: res?.route || "RAG",
+          plan: res?.plan || [],
+          trace: res?.trace || [],
+          memory: res?.memory || [],
+          context: res?.context || [],
+          planner_notes: res?.planner_notes || ""
         });
         return next;
       });
@@ -139,6 +298,7 @@ function ChatPage() {
       });
     } finally {
       setBusy(false);
+      setPipelineSteps([]);
     }
   }
 
@@ -149,6 +309,7 @@ function ChatPage() {
       <Topbar right={<span className="badge">Chat</span>} />
 
       <div className="chat-wrap chat-col">
+        {busy && pipelineSteps.length ? <PipelineLoader steps={pipelineSteps} /> : null}
         {log.map((m, i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {m.role === "user" ? (
@@ -166,6 +327,9 @@ function ChatPage() {
               <>
                 <div className="msg ai">
                   {m.route && <div className="route" style={{ marginBottom: 6 }}>Route: {m.route}</div>}
+                  <PlanCard plan={m.plan} notes={m.planner_notes} />
+                  <StageTimeline trace={m.trace} />
+                  <ContextPreview context={m.context} />
                   <ReactMarkdown
                     children={m.answer || "No response received"}
                     components={{
@@ -188,7 +352,6 @@ function ChatPage() {
                             </div>
                           );
                         }
-                        // inline code
                         return (
                           <code
                             style={{
@@ -200,7 +363,7 @@ function ChatPage() {
                             }}
                             {...props}
                           >
-                            {children}
+                            {raw}
                           </code>
                         );
                       },
@@ -221,7 +384,9 @@ function ChatPage() {
                     </details>
                   ) : null}
                 </div>
-                <div className="meta left">Assistant</div>
+                <div className="meta left">
+                  Agent · <CopyButton getText={() => m.answer || ""} label="Copy" />
+                </div>
               </>
             )}
           </div>
@@ -286,7 +451,7 @@ function UploadPage() {
 function DocsPage() {
   const [page, setPage] = useState(1), [size, setSize] = useState(10);
   const [data, setData] = useState({ total: 0, items: [] });
-  useEffect(() => { (async () => setData(await api.getDocuments(page, size)))(); }, [page, size]);
+  useEffect(() => { (async () => setData(await api.listDocs(page, size)))(); }, [page, size]);
   const totalPages = Math.max(1, Math.ceil(data.total / size));
   return (
     <div className="content">
